@@ -12,9 +12,11 @@ using DotNetEnv;
 using System.Text;
 using System.Threading.RateLimiting;
 
-var builder = WebApplication.CreateBuilder(args);
+// Load secrets from server/.env into environment variables BEFORE the builder is created,
+// so they are picked up by configuration (e.g. JwtSettings__Key -> JwtSettings:Key).
+DotNetEnv.Env.TraversePath().Load();
 
-DotNetEnv.Env.Load();
+var builder = WebApplication.CreateBuilder(args);
 
 // ===== JWT authentication =====
 // The token is issued on login/register and stored in an HttpOnly cookie ("auth_token"),
@@ -95,7 +97,7 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddDbContext<MyDbContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Tehila"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
 builder.Services.AddControllers();
