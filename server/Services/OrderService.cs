@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Services
@@ -14,11 +15,13 @@ namespace Services
     {
         IOrderRepository _r;
         IMapper _mapper;
+        private readonly IKafkaProducerService _kafkaProducerService;
 
-        public OrderService(IOrderRepository i, IMapper mapperr)
+        public OrderService(IOrderRepository i, IMapper mapperr, IKafkaProducerService kafkaProducerService)
         {
             _mapper = mapperr;
             _r = i;
+            _kafkaProducerService = kafkaProducerService;
         }
         public async Task<List<DtoOrder_Id_UserId_Date_Sum_OrderItems?>> GetOrdersUser(int id)
         {
@@ -39,6 +42,19 @@ namespace Services
             var ooo = _mapper.Map<DtoOrder_Id_UserId_Date_Sum_OrderItems, Order>(order);
             Order o = await _r.AddNewOrder(ooo);
             var oo = _mapper.Map<Order, DtoOrder_Id_UserId_Date_Sum_OrderItems>(o);
+
+            // Publish an "order created" event. The order is already saved, so a Kafka
+            // failure is logged but does not fail the checkout.
+            try
+            {
+                string jsonMessage = JsonSerializer.Serialize(oo);
+                await _kafkaProducerService.SendNotificationAsync(oo.OrderId.ToString(), jsonMessage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Kafka] Failed to publish order event: {ex.Message}");
+            }
+
             return oo;
         }
     }

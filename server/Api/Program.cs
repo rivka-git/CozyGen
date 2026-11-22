@@ -136,6 +136,8 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // ===== נוסף עבור הקריאה ל-AI - רישום שירות AI =====
 builder.Services.AddHttpClient<IAiService, AiService>();
+// ===== Kafka producer (singleton: one shared, thread-safe producer) =====
+builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
 
 var app = builder.Build();
 
