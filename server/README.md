@@ -14,8 +14,8 @@ The solution is organized into multiple projects with clear responsibility bound
 
 - `Api` – Controllers, middleware, application startup
 - `Services` – Business logic and orchestration
-- `repository` – Data access and persistence
-- `Dto` – DTO contracts for API/service communication
+- `Repository` – Data access and persistence
+- `DTOs` – DTO contracts for API/service communication
 - `Entities` – Domain/entity models
 - `Tests` – Automated unit and integration tests
 
@@ -37,7 +37,7 @@ Entity-to-DTO conversion is handled through `AutoMapper`.
 
 ## Configuration Management
 
-Environment and runtime settings are externalized via `appsettings` files (for example, connection strings and environment-specific values), keeping configuration separate from source code.
+Non-secret settings live in `appsettings.json`. Secrets (JWT key, connection string, Redis password, API keys, SMTP credentials) come from environment variables, loaded from `server/.env` (see `.env.example`).
 
 ## Logging, Monitoring, and Error Handling
 

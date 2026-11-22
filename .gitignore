@@ -1,0 +1,25 @@
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+
+# .NET build output
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Logs and test output
+logs/
+*.log
+TestResults/
+
+# Node / Angular
+node_modules/
+client/dist/
+client/.angular/
+
+# OS / editor
+.DS_Store
+Thumbs.db
