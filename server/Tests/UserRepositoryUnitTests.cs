@@ -99,7 +99,7 @@ namespace Test
         }
 
         [Fact]
-        public async Task Login_ReturnsUser_WhenCredentialsMatch()
+        public async Task GetUserByEmail_ReturnsUser_WhenEmailExists()
         {
             var users = new List<User>
             {
@@ -116,16 +116,14 @@ namespace Test
             mockContext.Setup(c => c.Users).Returns(mockSet.Object);
 
             var repository = new UserRepository(mockContext.Object);
-            var loginUser = new User { Email = "user@test.com", PasswordHash = "correcthash" };
-            
-            var result = await repository.Login(loginUser);
+            var result = await repository.GetUserByEmail("user@test.com");
 
             Assert.NotNull(result);
             Assert.Equal("user@test.com", result.Email);
         }
 
         [Fact]
-        public async Task Login_ReturnsNull_WhenCredentialsDoNotMatch()
+        public async Task GetUserByEmail_ReturnsNull_WhenEmailDoesNotExist()
         {
             var users = new List<User>
             {
@@ -142,9 +140,7 @@ namespace Test
             mockContext.Setup(c => c.Users).Returns(mockSet.Object);
 
             var repository = new UserRepository(mockContext.Object);
-            var loginUser = new User { Email = "user@test.com", PasswordHash = "wronghash" };
-            
-            var result = await repository.Login(loginUser);
+            var result = await repository.GetUserByEmail("other@test.com");
 
             Assert.Null(result);
         }

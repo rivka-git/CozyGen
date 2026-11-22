@@ -64,7 +64,7 @@ namespace project1.Controllers
             DtoUser_Name_Gmail_Role_Id res = await _s.Login(user);
             if(res!=null)
             {
-                _logger.LogInformation($"login attempted with user name,{user.Email} and password {user.PasswordHash}");
+                _logger.LogInformation("User login succeeded for email {Email}", user.Email);
                 return Ok(res);
             }  
             return NotFound();

@@ -56,6 +56,7 @@ namespace Services
             {
                 var userEntity = _mapper.Map<DtoUser_All, User>(user);
                 userEntity.Role = "Customer";
+                userEntity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
                 var res = await _r.AddNewUser(userEntity);
                 await _cache.RemoveAsync(CacheKey);
 
@@ -67,15 +68,34 @@ namespace Services
 
         public async Task<DtoUser_Name_Gmail_Role_Id?> Login(DtoUser_Gmail_Password value)
         {
-            var a = _mapper.Map<DtoUser_Gmail_Password, User>(value);
-            var u = await _r.Login(a);
-
+            var u = await _r.GetUserByEmail(value.Email);
             if (u == null) return null;
 
-            var dtoUser = _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(u);
-            return dtoUser;
+            if (!await VerifyPasswordAsync(u, value.PasswordHash)) return null;
+
+            return _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(u);
         }
-       
+
+        // Verifies a password against the stored BCrypt hash.
+        // Legacy users stored before hashing was introduced are upgraded on first successful login.
+        private async Task<bool> VerifyPasswordAsync(User user, string password)
+        {
+            if (IsBcryptHash(user.PasswordHash))
+            {
+                return BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+            }
+
+            if (user.PasswordHash != password) return false;
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+            await _r.Update(user.UserId, user);
+            await _cache.RemoveAsync(CacheKey);
+            return true;
+        }
+
+        private static bool IsBcryptHash(string hash) =>
+            hash.StartsWith("$2a$") || hash.StartsWith("$2b$") || hash.StartsWith("$2y$");
+
         public async Task<DtoUser_Name_Gmail_Role_Id> Update(int id, DtoUser_All userDto)
         {
 
@@ -87,6 +107,7 @@ namespace Services
 
             _mapper.Map(userDto, existingUser);
             existingUser.UserId = id;
+            existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(userDto.PasswordHash);
             var res = await _r.Update(id, existingUser);
             await _cache.RemoveAsync(CacheKey);
 
@@ -96,8 +117,8 @@ namespace Services
         public async Task<bool> IsAdminById(int id, string password)
         {
            
-            var user = await _r.GetUserByIdAndPassword(id, password);
-            if (user != null && user.Role == "Admin")
+            var user = await _r.GetUserById(id);
+            if (user != null && user.Role == "Admin" && await VerifyPasswordAsync(user, password))
             {
                 return true;
             }
