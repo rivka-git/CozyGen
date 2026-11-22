@@ -1,4 +1,5 @@
-﻿using Entities;
+﻿using Microsoft.AspNetCore.Authorization;
+using Entities;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using DTOs;
 
 namespace Api.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/[controller]")]
     public class AiController : ControllerBase

@@ -3,7 +3,11 @@ using DTOs;
 using Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.IdentityModel.Tokens;
 using Repository;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 namespace Services
 {
@@ -49,7 +53,7 @@ namespace Services
             var r = _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(u);
             return r;
         }
-        public async Task<DtoUser_Name_Gmail_Role_Id> AddNewUser(DtoUser_All user)
+        public async Task<DtoAuthResponse?> AddNewUser(DtoUser_All user)
         {
             int d = _passwordService.GetStrengthByPassword(user.PasswordHash);
             if (d >= 2)
@@ -60,20 +64,27 @@ namespace Services
                 var res = await _r.AddNewUser(userEntity);
                 await _cache.RemoveAsync(CacheKey);
 
-                var dtoUser = _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(res);
-                return dtoUser;
+                return new DtoAuthResponse
+                {
+                    User = _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(res),
+                    Token = GenerateJwtToken(res)
+                };
             }
             return null;
         }
 
-        public async Task<DtoUser_Name_Gmail_Role_Id?> Login(DtoUser_Gmail_Password value)
+        public async Task<DtoAuthResponse?> Login(DtoUser_Gmail_Password value)
         {
             var u = await _r.GetUserByEmail(value.Email);
             if (u == null) return null;
 
             if (!await VerifyPasswordAsync(u, value.PasswordHash)) return null;
 
-            return _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(u);
+            return new DtoAuthResponse
+            {
+                User = _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(u),
+                Token = GenerateJwtToken(u)
+            };
         }
 
         // Verifies a password against the stored BCrypt hash.
@@ -114,15 +125,33 @@ namespace Services
             return _mapper.Map<User, DtoUser_Name_Gmail_Role_Id>(res);
         }
       
-        public async Task<bool> IsAdminById(int id, string password)
+        private string GenerateJwtToken(User user)
         {
-           
-            var user = await _r.GetUserById(id);
-            if (user != null && user.Role == "Admin" && await VerifyPasswordAsync(user, password))
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var key = jwtSettings["Key"] ?? throw new InvalidOperationException("JwtSettings:Key is missing.");
+            var expiryMinutes = jwtSettings.GetValue<int>("ExpiryMinutes");
+
+            var claims = new List<Claim>
             {
-                return true;
-            }
-            return false;
+                new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
+                new(JwtRegisteredClaimNames.Email, user.Email),
+                new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+                new(ClaimTypes.Role, user.Role),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(expiryMinutes <= 0 ? 60 : expiryMinutes),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
     }

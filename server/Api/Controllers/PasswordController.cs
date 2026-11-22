@@ -1,4 +1,5 @@
-﻿using DTOs;
+﻿using Microsoft.AspNetCore.Authorization;
+using DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Services;
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -6,6 +7,7 @@ using Services;
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
+    [AllowAnonymous]
     [ApiController]
     public class PasswordController : ControllerBase
     {
