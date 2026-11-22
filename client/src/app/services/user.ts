@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment.development';
-import { UserLogin, UserRegister, UserResponse, UserUpdate } from '../models/user.model';
+import { AuthResponse, UserLogin, UserRegister, UserResponse, UserUpdate } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -31,41 +31,37 @@ export class UserService {
     return user?.role === 'Admin';
   }
 
+  // The server returns the user plus a JWT and also sets the JWT as an HttpOnly cookie.
+  // Only the public user details are kept in localStorage (never the password or the token).
   login(credentials: UserLogin): Observable<UserResponse> {
-    const loginData = credentials as any;
-    return this.http.post<UserResponse>(`${this.apiUrl}/Login`, credentials).pipe(
-      tap(user => {
-        console.log('Login response:', user);
-        const userWithPassword = { ...user, password: loginData.passwordHash };
-        localStorage.setItem('currentUser', JSON.stringify(userWithPassword));
-        console.log('Saved password:', !!loginData.passwordHash);
-        this.currentUserSubject.next(user);
-        
-        const isAdmin = user.role === 'Admin';
-        console.log('Is Admin:', isAdmin, 'Role:', user.role);
-        this.isAdminSubject.next(isAdmin);
-        localStorage.setItem('isAdmin', String(isAdmin));
-      })
+    return this.http.post<AuthResponse>(`${this.apiUrl}/Login`, credentials).pipe(
+      map(res => res.user),
+      tap(user => this.setCurrentUser(user))
     );
   }
 
   register(userData: UserRegister): Observable<UserResponse> {
-    return this.http.post<UserResponse>(this.apiUrl, userData).pipe(
-      tap(user => {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        this.currentUserSubject.next(user);
-        const isAdmin = user.role === 'Admin';
-        this.isAdminSubject.next(isAdmin);
-        localStorage.setItem('isAdmin', String(isAdmin));
-      })
+    return this.http.post<AuthResponse>(this.apiUrl, userData).pipe(
+      map(res => res.user),
+      tap(user => this.setCurrentUser(user))
     );
   }
 
   logout(): void {
+    // Ask the server to clear the auth cookie; local state is cleared either way.
+    this.http.post(`${this.apiUrl}/Logout`, {}).subscribe({ error: () => {} });
     localStorage.removeItem('currentUser');
     localStorage.removeItem('isAdmin');
     this.currentUserSubject.next(null);
     this.isAdminSubject.next(false);
+  }
+
+  private setCurrentUser(user: UserResponse): void {
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    this.currentUserSubject.next(user);
+    const isAdmin = user.role === 'Admin';
+    this.isAdminSubject.next(isAdmin);
+    localStorage.setItem('isAdmin', String(isAdmin));
   }
 
   isLoggedIn(): boolean {

@@ -11,11 +11,17 @@ import {
   HTTP_INTERCEPTORS,
 } from '@angular/common/http';
 import { HttpRetryInterceptor } from './services/http-retry.interceptor';
+import { CredentialsInterceptor } from './services/credentials.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes, withInMemoryScrolling({ anchorScrolling: 'enabled' })),
     provideHttpClient(withInterceptorsFromDi()),
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: CredentialsInterceptor,
+      multi: true,
+    },
     {
       provide: HTTP_INTERCEPTORS,
       useClass: HttpRetryInterceptor,

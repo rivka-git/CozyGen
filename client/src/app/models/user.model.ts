@@ -38,3 +38,10 @@ export interface UserUpdate {
   phone: string;
   address: string;
 }
+
+// Returned by POST /Users (register) and POST /Users/Login.
+// The JWT is also set by the server as an HttpOnly cookie, so the client does not store it.
+export interface AuthResponse {
+  user: UserResponse;
+  token: string;
+}

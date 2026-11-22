@@ -17,12 +17,7 @@ export class AdminService {
   }
 
   deleteProduct(id: number): Observable<void> {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const headers = {
-      'userId': user.userId?.toString() || '0',
-      'password': user.password || ''
-    };
-    return this.http.delete<void>(`${this.apiUrl}/Product/${id}`, { headers });
+    return this.http.delete<void>(`${this.apiUrl}/Product/${id}`);
   }
 
   // Categories
@@ -31,12 +26,7 @@ export class AdminService {
   }
 
   deleteCategory(id: number): Observable<void> {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const headers = {
-      'userId': user.userId?.toString() || '0',
-      'password': user.password || ''
-    };
-    return this.http.delete<void>(`${this.apiUrl}/Category/${id}`, { headers });
+    return this.http.delete<void>(`${this.apiUrl}/Category/${id}`);
   }
 
   // Styles
@@ -45,12 +35,7 @@ export class AdminService {
   }
 
   deleteStyle(id: number): Observable<void> {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const headers = {
-      'userId': user.userId?.toString() || '0',
-      'password': user.password || ''
-    };
-    return this.http.delete<void>(`${this.apiUrl}/Style/${id}`, { headers });
+    return this.http.delete<void>(`${this.apiUrl}/Style/${id}`);
   }
 
   // Check if user is admin
@@ -59,11 +44,7 @@ export class AdminService {
   }
 
   uploadProductImages(frontImage: File, backImage: File, product: AdminProduct): Observable<any> {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
-    console.log('Current user from localStorage:', user);
     console.log('Product data:', product);
-    console.log('UserId:', user.userId, 'Password exists:', !!user.password);
     
     const formData = new FormData();
     formData.append('frontImage', frontImage);
@@ -74,46 +55,25 @@ export class AdminService {
     formData.append('categoryId', product.categoryId?.toString() || '0');
     
     console.log('Sending FormData to:', `${this.apiUrl}/Product/upload`);
-    
-    const headers = {
-      'userId': user.userId?.toString() || '0',
-      'password': user.password || ''
-    };
-    
-    console.log('Headers:', headers);
-    
-    return this.http.post(`${this.apiUrl}/Product/upload`, formData, { headers });
+
+    return this.http.post(`${this.apiUrl}/Product/upload`, formData);
   }
 
   uploadCategoryImage(image: File, category: AdminCategory): Observable<any> {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
     const formData = new FormData();
     formData.append('image', image);
     formData.append('name', category.name || '');
     formData.append('description', category.description || '');
-    
-    const headers = {
-      'userId': user.userId?.toString() || '0',
-      'password': user.password || ''
-    };
-    
-    return this.http.post(`${this.apiUrl}/Category/upload`, formData, { headers });
+
+    return this.http.post(`${this.apiUrl}/Category/upload`, formData);
   }
 
   uploadStyleImage(image: File, style: AdminStyle): Observable<any> {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    
     const formData = new FormData();
     formData.append('image', image);
     formData.append('name', style.name || '');
     formData.append('description', style.description || '');
-    
-    const headers = {
-      'userId': user.userId?.toString() || '0',
-      'password': user.password || ''
-    };
-    
-    return this.http.post(`${this.apiUrl}/Style/upload`, formData, { headers });
+
+    return this.http.post(`${this.apiUrl}/Style/upload`, formData);
   }
 }
